@@ -1,0 +1,48 @@
+#!/usr/bin/env sh
+#Original PowerShell script:
+#https://blog.alexdpsg.net/958/
+#Converted to Shell by
+#https://github.com/MikaMika
+
+#Modify as required. Points to the default install location
+#GW2Path="$HOME/.steam/debian-installation/steamapps/common/Guild Wars 2"
+GW2Path="$HOME/.local/share/Steam/steamapps/common/Guild Wars 2"
+
+#Don't change these paths unless arc does
+md5sum='https://www.deltaconnected.com/arcdps/x64/d3d11.dll.md5sum'
+d3d11='https://www.deltaconnected.com/arcdps/x64/d3d11.dll'
+
+Get_ArcDps() {
+    echo "Downloading ArcDps..."
+    wget -q "$d3d11" -O "d3d11.dll"
+    echo "Completed ArcDps install"
+    echo "Loading changes..."
+    cp changes changes.old
+    wget -q "https://www.deltaconnected.com/arcdps" -O "arcdps"
+    cat arcdps | sed '0,/<b>changes/d' | sed '/<b>download/,$d' | sed 's/    &nbsp;//g' | sed 's/<br>//g' > changes
+    rm arcdps
+    diff changes changes.old
+}
+
+Invoke_ArcDpsCheck() {
+    today=$(date -I)
+    echo "Downloading md5sum..."
+    wget -q "$md5sum" -O "d3d11.dll.md5sum"
+    if [ -f "d3d11.dll" ]; then
+	echo 'Checking md5sum...'
+        if md5sum --status -c d3d11.dll.md5sum; then
+            echo 'ArcDps is up to date'
+        else
+            echo 'ArcDps is out of date'
+            mv "d3d11.dll" "d3d11.$today"
+            Get_ArcDps
+        fi
+    else
+        Get_ArcDps
+    fi
+}
+
+echo "Opening $GW2Path"
+cd "$GW2Path" || exit
+echo "d3d11.dll last modified: $(date -r d3d11.dll)"
+Invoke_ArcDpsCheck
